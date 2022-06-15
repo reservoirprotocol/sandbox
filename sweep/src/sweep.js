@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { arrayify, splitSignature } from "ethers/lib/utils";
 
 import { pollUntilHasData, setParams } from "./utils";
@@ -173,8 +173,12 @@ export default function Sweep() {
   const { activeChain } = useNetwork();
   const [tokens, setTokens] = useState([]);
   const [selectedTokenIds, setSelectedTokenIds] = useState([]);
-  const [collectionId, setCollectionId] = useState("");
-  const [inputValue, setInputValue] = useState("");
+  const [collectionId, setCollectionId] = useState(
+    "0xf5de760f2e916647fd766b4ad9e85ff943ce3a2b"
+  );
+  const [inputValue, setInputValue] = useState(
+    "0xf5de760f2e916647fd766b4ad9e85ff943ce3a2b"
+  );
   const [progressText, setProgressText] = useState("");
 
   const handleOnChange = (tokenId) => {
@@ -191,6 +195,13 @@ export default function Sweep() {
 
     setSelectedTokenIds(updatedSelectedTokenIds);
   };
+
+  useEffect(() => {
+    console.log("Changed");
+    getCollectionFloor(collectionId).then((tokens) => {
+      setTokens(tokens);
+    });
+  }, [collectionId]);
 
   const connector = connectors[0];
 
@@ -226,9 +237,6 @@ export default function Sweep() {
       <button
         onClick={() => {
           setCollectionId(inputValue);
-          getCollectionFloor(inputValue).then((tokens) => {
-            setTokens(tokens);
-          });
         }}
       >
         Get Floor
@@ -261,7 +269,7 @@ export default function Sweep() {
       </table>
 
       {!tokens.length && (
-        <div class="empty-message">
+        <div className="empty-message">
           Enter a collection address to get available floor tokens
         </div>
       )}
