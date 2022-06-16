@@ -20,7 +20,7 @@ const client = createClient({
   ],
 });
 
-function App() {
+export default function App() {
   return (
     <WagmiConfig client={client}>
       <div className="App">
@@ -30,5 +30,3 @@ function App() {
     </WagmiConfig>
   );
 }
-
-export default App;
