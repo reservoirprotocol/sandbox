@@ -22,7 +22,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "postinstall": "cd ../utils; yarn link; cd ../sweep; yarn link sandbox-utils"
+    "cp:utils": "mkdir ./src/utils; cp ../utils/* ./src/utils/",
+    "postinstall": "yarn cp:utils"
   },
   "eslintConfig": {
     "extends": [

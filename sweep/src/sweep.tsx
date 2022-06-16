@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import getCollectionFloor, { Token } from "./getListings";
 import { useConnect, useSigner, useAccount, useNetwork } from "wagmi";
 import { buyToken, Execute } from "@reservoir0x/client-sdk";
-import { WalletConnector } from "sandbox-utils";
+import { WalletConnector } from "./utils/walletConnector";
 
 async function sweepTokens(
   sweepTotal: number,
