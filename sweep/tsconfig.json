@@ -14,12 +14,12 @@
       "isolatedModules": true,
       "jsx": "preserve",
       "incremental": true,
-      "baseUrl": ".",
+      "baseUrl": "."
     },
     "include": [
       "**/*.ts",
-      "**/*.tsx",
+      "**/*.tsx"
     ],
-    "exclude": ["node_modules"],
+    "exclude": ["node_modules"]
   }
   
