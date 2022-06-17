@@ -37,7 +37,7 @@ async function sweepTokens(
       taker: taker,
     };
 
-    // Next we need to walk through all the tokens and create a hash table where the key is in tokens[index]
+    // Next we need to walk through all the tokens and create a hash table where the key is tokens[index]
     // The value is the collection contract address and the token id seperated by a colon
     tokenIds?.forEach(
       (tokenId, index) =>
