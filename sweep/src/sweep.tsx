@@ -39,12 +39,13 @@ async function sweepTokens(
 
     // Next we need to walk through all the tokens and create a hash table where the key is tokens[index]
     // The value is the collection contract address and the token id seperated by a colon
-    tokenIds?.forEach(
-      (tokenId, index) =>
-        // Due to how the openapi spec is generated we need to ignore dynamic parameters like this token array
-        //@ts-ignore
-        (query[`tokens[${index}]`] = `${collectionId}:${tokenId}`)
-    );
+    tokenIds?.forEach((tokenId, index) => {
+      const key = `tokens[${index}]`;
+      const value = `${collectionId}:${tokenId}`;
+      // Due to how the openapi spec is generated we need to ignore dynamic parameters like this token array
+      //@ts-ignore
+      query[key] = value;
+    });
 
     // Finally we supply these parameters to the buyToken
     // There are a couple of key parameters which we'll dive into
