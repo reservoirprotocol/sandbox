@@ -1,0 +1,1 @@
+This folder holds different utils used within the sandboxes. Only make changes in this directory, changes outside of the directory in any of the utils folders will be overwritten when the utils are synced.
