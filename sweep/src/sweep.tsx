@@ -1,81 +1,54 @@
 import { useEffect, useState } from "react";
 
 import getCollectionFloor, { Token } from "./getListings";
-import { useConnect, useSigner, useAccount, useNetwork } from "wagmi";
-import { buyToken, Execute } from "@reservoir0x/client-sdk";
+import { useConnect, useSigner, useNetwork } from "wagmi";
 import { WalletConnector } from "./utils/walletConnector";
+import { Execute } from "@reservoir0x/client-sdk/dist/types";
+import { ReservoirSDK, ReservoirSDKActions } from "@reservoir0x/client-sdk";
 
 async function sweepTokens(
   sweepTotal: number,
-  collectionId: string,
-  tokenIds: string[],
+  tokens: Parameters<ReservoirSDKActions["buyToken"]>["0"]["tokens"],
   progressCallback: (message: string) => void,
-  signer?: ReturnType<typeof useSigner>["data"],
-  taker?: string
+  signer?: ReturnType<typeof useSigner>["data"]
 ) {
   // Required parameters to complete the transaction
   if (!signer) {
     throw new ReferenceError("Missing a signer");
   }
 
-  if (!tokenIds || tokenIds.length === 0) {
-    throw new ReferenceError("Missing token ids");
-  }
-
-  if (!collectionId) {
-    throw new ReferenceError("Missing collection id");
-  }
-
-  if (!taker) {
-    throw new ReferenceError("Missing a taker");
-  }
-
   try {
-    // Here we construct the parameters for the buy API
-    // The taker refers to the wallet address making the transaction
-    const query: Parameters<typeof buyToken>["0"]["query"] = {
-      taker: taker,
-    };
-
-    // Next we need to walk through all the tokens and create a hash table where the key is tokens[index]
-    // The value is the collection contract address and the token id seperated by a colon
-    tokenIds?.forEach((tokenId, index) => {
-      const key = `tokens[${index}]`;
-      const value = `${collectionId}:${tokenId}`;
-      // Due to how the openapi spec is generated we need to ignore dynamic parameters like this token array
-      //@ts-ignore
-      query[key] = value;
-    });
-
     // Finally we supply these parameters to the buyToken
     // There are a couple of key parameters which we'll dive into
-    await buyToken({
-      // The expectedPrice is used to protect against price mismatch issues when prices are rapidly changing
-      // The expectedPrice can be omitted but the best practice is to supply this
-      expectedPrice: sweepTotal,
-      query: query,
-      signer: signer,
-      apiBase: "https://api-rinkeby.reservoir.tools",
-      // The setState callback function is used to update the caller of the buyToken method
-      // It passes in a set of steps that the SDK is following to process the transaction
-      // It's useful for determining what step we're currently on and displaying a message to the user
-      setState: (steps: Execute["steps"]) => {
-        if (!steps) {
-          return;
-        }
+    ReservoirSDK.client()
+      .actions.buyToken({
+        tokens: tokens,
+        signer: signer,
+        // The expectedPrice is used to protect against price mismatch issues when prices are rapidly changing
+        // The expectedPrice can be omitted but the best practice is to supply this
+        expectedPrice: sweepTotal,
+        // The onProgress callback function is used to update the caller of the buyToken method
+        // It passes in a set of steps that the SDK is following to process the transaction
+        // It's useful for determining what step we're currently on and displaying a message to the user
+        onProgress: (steps: Execute["steps"]) => {
+          if (!steps) {
+            return;
+          }
 
-        const currentStep = steps.find((step) => step.status === "incomplete");
-        if (currentStep) {
-          progressCallback(currentStep.message || "");
-        }
-      },
-      handleSuccess: () => {
+          const currentStep = steps.find(
+            (step) => step.status === "incomplete"
+          );
+          if (currentStep) {
+            progressCallback(currentStep.message || "");
+          }
+        },
+      })
+      .then(() => {
         progressCallback("Success");
-      },
-      handleError: (error) => {
+      })
+      .catch((error: Error) => {
         progressCallback(`Error: ${error.message}`);
-      },
-    });
+      });
 
     return true;
   } catch (err) {
@@ -86,10 +59,10 @@ async function sweepTokens(
 
 export default function Sweep() {
   const { data: signer } = useSigner();
-  const { data: account } = useAccount();
   const { connectors, isConnected } = useConnect();
   const { activeChain } = useNetwork();
   const [tokens, setTokens] = useState<Token[]>([]);
+  const [selectedTokens, setselectedTokens] = useState<Token[]>([]);
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [sweepTotal, setSweepTotal] = useState(0);
   const [collectionId, setCollectionId] = useState(
@@ -100,19 +73,21 @@ export default function Sweep() {
   );
   const [progressText, setProgressText] = useState("");
 
-  const handleOnChange = (tokenId: string) => {
-    const selected = selectedTokenIds.includes(tokenId);
-    let updatedSelectedTokenIds = selectedTokenIds.slice();
+  const handleOnChange = (token: Token) => {
+    const selectedTokenIds = selectedTokens.map((token) => token.tokenId);
+    const selected = selectedTokenIds.includes(token.tokenId);
+    let updatedselectedTokens = selectedTokens.slice();
 
     if (selected) {
-      updatedSelectedTokenIds = selectedTokenIds.filter(
-        (selectedTokenId) => tokenId !== selectedTokenId
+      updatedselectedTokens = selectedTokens.filter(
+        (selectedToken) => selectedToken.tokenId !== token.tokenId
       );
     } else {
-      updatedSelectedTokenIds.push(tokenId);
+      updatedselectedTokens.push(token);
     }
 
-    setSelectedTokenIds(updatedSelectedTokenIds);
+    setselectedTokens(updatedselectedTokens);
+    setSelectedTokenIds(updatedselectedTokens.map((token) => token.tokenId));
   };
 
   useEffect(() => {
@@ -170,7 +145,7 @@ export default function Sweep() {
                   type="checkbox"
                   value={token.tokenId}
                   checked={selectedTokenIds.includes(token.tokenId)}
-                  onChange={() => handleOnChange(token.tokenId)}
+                  onChange={() => handleOnChange(token)}
                 />
               </td>
             </tr>
@@ -185,7 +160,7 @@ export default function Sweep() {
       )}
 
       <button
-        disabled={selectedTokenIds.length === 0}
+        disabled={selectedTokens.length === 0}
         onClick={async () => {
           if (activeChain?.id !== 4) {
             alert(
@@ -198,14 +173,7 @@ export default function Sweep() {
             await connector.connect();
           }
           setProgressText("");
-          sweepTokens(
-            sweepTotal,
-            collectionId,
-            selectedTokenIds,
-            setProgressText,
-            signer,
-            account?.address
-          );
+          sweepTokens(sweepTotal, selectedTokens, setProgressText, signer);
         }}
       >
         Sweep Tokens
