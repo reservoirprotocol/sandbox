@@ -91,151 +91,167 @@ export default function List() {
     <>
       <WalletConnector />
 
-      <button
-        onClick={async () => {
-          setErrorText('')
-          if (account?.address) {
-            setLoading(true)
-            const tokens = await getTokens(account?.address)
-            setLoading(false)
-            if (tokens.length === 0) {
-              setErrorText(`You don't have any tokens available for listing.`)
-            }
-            setUserTokens(tokens)
-            return
-          }
+      {isConnected && (
+        <>
+          <button
+            onClick={async () => {
+              setErrorText('')
+              if (account?.address) {
+                setLoading(true)
+                const tokens = await getTokens(account?.address)
+                setLoading(false)
+                if (tokens.length === 0) {
+                  setErrorText(
+                    `You don't have any tokens available for listing.`
+                  )
+                }
+                setUserTokens(tokens)
+                return
+              }
 
-          console.error('Wallet is not connected.')
-        }}
-      >
-        Load one of your tokens
-      </button>
+              console.error('Wallet is not connected.')
+            }}
+          >
+            Load one of your tokens
+          </button>
 
-      <table className="sweep-list">
-        <thead>
-          <tr>
-            <th>Token</th>
-            <th>List</th>
-          </tr>
-        </thead>
-        <tbody>
-          {userTokens.map(({ token: token_ }, i) => (
-            <tr key={i}>
-              <td>{`${token_?.contract}:${token_?.tokenId}`}</td>
-              <td>
-                <ExpirationSelector
-                  presets={expirationPresets}
-                  setExpiration={setExpiration}
-                  expiration={expiration}
-                />
-                <div style={{ marginBottom: 10 }} />
-                <OrderKindSelector setOrderKind={setOrderKind} />
+          {userTokens.length > 0 && (
+            <table className="sweep-list">
+              <thead>
+                <tr>
+                  <th>Token</th>
+                  <th>List</th>
+                </tr>
+              </thead>
+              <tbody>
+                {userTokens.map(({ token: token_ }, i) => (
+                  <tr key={i}>
+                    <td>{`${token_?.contract}:${token_?.tokenId}`}</td>
+                    <td>
+                      <ExpirationSelector
+                        presets={expirationPresets}
+                        setExpiration={setExpiration}
+                        expiration={expiration}
+                      />
+                      <div style={{ marginBottom: 10 }} />
+                      <OrderKindSelector setOrderKind={setOrderKind} />
 
-                <div style={{ marginBottom: 10 }} />
-                <label style={{ marginRight: 10 }} htmlFor="listing-price">
-                  Listing Price
-                </label>
-                <input
-                  id="listing-price"
-                  className="collection-input"
-                  type="number"
-                  min={0.01}
-                  step={0.01}
-                  value={listingPrice}
-                  placeholder="Listing Price"
-                  onChange={(e) => setListingPrice(e.target.value)}
-                />
-                <span>ETH</span>
+                      <div style={{ marginBottom: 10 }} />
+                      <label
+                        style={{ marginRight: 10 }}
+                        htmlFor="listing-price"
+                      >
+                        Listing Price
+                      </label>
+                      <input
+                        id="listing-price"
+                        className="collection-input"
+                        type="number"
+                        min={0.01}
+                        step={0.01}
+                        value={listingPrice}
+                        placeholder="Listing Price"
+                        onChange={(e) => setListingPrice(e.target.value)}
+                      />
+                      <span>ETH</span>
 
-                <div style={{ marginBottom: 10 }} />
-                <label style={{ marginRight: 10 }} htmlFor="fee">
-                  Fee
-                </label>
-                <input
-                  id="fee"
-                  className="collection-input"
-                  type="number"
-                  min={0.01}
-                  step={0.01}
-                  value={fee_}
-                  placeholder="Fee"
-                  onChange={(e) => setFee_(e.target.value)}
-                />
-                <span>%</span>
+                      <div style={{ marginBottom: 10 }} />
+                      <label style={{ marginRight: 10 }} htmlFor="fee">
+                        Fee
+                      </label>
+                      <input
+                        id="fee"
+                        className="collection-input"
+                        type="number"
+                        min={0.01}
+                        step={0.01}
+                        value={fee_}
+                        placeholder="Fee"
+                        onChange={(e) => setFee_(e.target.value)}
+                      />
+                      <span>%</span>
 
-                <div style={{ marginBottom: 10 }} />
-                <label style={{ marginRight: 10 }} htmlFor="fee-recipient">
-                  Fee Recipient
-                </label>
-                <input
-                  id="fee-recipient"
-                  className="collection-input"
-                  type="text"
-                  value={feeRecipient}
-                  placeholder="Fee Recipient"
-                  onChange={(e) => setFeeRecipient(e.target.value)}
-                />
+                      <div style={{ marginBottom: 10 }} />
+                      <label
+                        style={{ marginRight: 10 }}
+                        htmlFor="fee-recipient"
+                      >
+                        Fee Recipient
+                      </label>
+                      <input
+                        id="fee-recipient"
+                        className="collection-input"
+                        type="text"
+                        value={feeRecipient}
+                        placeholder="Fee Recipient"
+                        onChange={(e) => setFeeRecipient(e.target.value)}
+                      />
 
-                <div style={{ marginBottom: 10 }} />
-                <OrderbookSelector setOrderbook={setOrderbook} />
+                      <div style={{ marginBottom: 10 }} />
+                      <OrderbookSelector setOrderbook={setOrderbook} />
 
-                <div style={{ marginBottom: 10 }} />
-                <button
-                  disabled={!isConnected || loading}
-                  onClick={async () => {
-                    setLoading(true)
-                    if (activeChain?.id !== 4) {
-                      alert(
-                        'You are connected to the wrong network. Please, switch to the Rinkeby Test Network.'
-                      )
+                      <div style={{ marginBottom: 10 }} />
+                      <button
+                        disabled={!isConnected || loading}
+                        onClick={async () => {
+                          setLoading(true)
+                          if (activeChain?.id !== 4) {
+                            alert(
+                              'You are connected to the wrong network. Please, switch to the Rinkeby Test Network.'
+                            )
 
-                      setLoading(false)
-                      return
-                    }
+                            setLoading(false)
+                            return
+                          }
 
-                    if (!account?.address) {
-                      setLoading(false)
-                      return
-                    }
+                          if (!account?.address) {
+                            setLoading(false)
+                            return
+                          }
 
-                    if (!isConnected) {
-                      await connector.connect()
-                    }
+                          if (!isConnected) {
+                            await connector.connect()
+                          }
 
-                    setProgressText('')
+                          setProgressText('')
 
-                    const maker = account?.address
-                    const weiPrice = utils.parseEther(listingPrice).toString()
-                    const token = `${token_?.contract}:${token_?.tokenId}`
-                    const expirationTime = expirationPresets
-                      .find(({ preset }) => preset === expiration)
-                      ?.value()
-                    const fee = `${+fee_ * 100}`
+                          const maker = account?.address
+                          const weiPrice = utils
+                            .parseEther(listingPrice)
+                            .toString()
+                          const token = `${token_?.contract}:${token_?.tokenId}`
+                          const expirationTime = expirationPresets
+                            .find(({ preset }) => preset === expiration)
+                            ?.value()
+                          const fee = `${+fee_ * 100}`
 
-                    const query: ListingQuery = {
-                      maker,
-                      weiPrice,
-                      token,
-                      expirationTime,
-                      orderKind,
-                      orderbook,
-                    }
+                          const query: ListingQuery = {
+                            maker,
+                            weiPrice,
+                            token,
+                            expirationTime,
+                            orderKind,
+                            orderbook,
+                          }
 
-                    if (fee_ !== '') query.fee = fee
-                    if (feeRecipient) query.feeRecipient = feeRecipient
+                          if (fee_ !== '') query.fee = fee
+                          if (feeRecipient) query.feeRecipient = feeRecipient
 
-                    await list(query, setProgressText, signer)
+                          await list(query, setProgressText, signer)
 
-                    setLoading(false)
-                  }}
-                >
-                  List Token
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                          setLoading(false)
+                        }}
+                      >
+                        List Token
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
 
       {loading && (
         <div className="progress-text">
