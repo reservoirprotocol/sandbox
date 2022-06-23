@@ -1,12 +1,12 @@
-import React from 'react'
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import React from "react";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 
 export const WalletConnector: React.FC = () => {
   const { connect, connectors, pendingConnector, isConnecting, isConnected } =
-    useConnect()
-  const { disconnect } = useDisconnect()
-  const { data: account } = useAccount()
-  const connector = connectors[0]
+    useConnect();
+  const { disconnect } = useDisconnect();
+  const { data: account } = useAccount();
+  const connector = connectors[0];
 
   return (
     <div style={{ marginBottom: 25 }}>
@@ -22,12 +22,12 @@ export const WalletConnector: React.FC = () => {
           onClick={() => connect(connector)}
         >
           Connect Browser Wallet
-          {!connector.ready && ' (unsupported)'}
+          {!connector.ready && " (unsupported)"}
           {isConnecting &&
             connector.id === pendingConnector?.id &&
-            ' (connecting)'}
+            " (connecting)"}
         </button>
       )}
     </div>
-  )
-}
+  );
+};

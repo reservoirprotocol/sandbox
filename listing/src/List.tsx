@@ -4,11 +4,24 @@ import { listToken, Execute } from '@reservoir0x/client-sdk'
 import { WalletConnector } from './utils/walletConnector'
 import { utils } from 'ethers'
 import getTokens, { Token } from './getTokens'
+import { DateTime } from 'luxon'
+import ExpirationSelector from './ExpirationSelector'
+import OrderKindSelector from './OrderKindSelector'
+import OrderbookSelector from './OrderbookSelector'
+
+export type OrderKind =
+  | '721ex'
+  | 'looks-rare'
+  | 'wyvern-v2.3'
+  | 'zeroex-v4'
+  | 'seaport'
+
+export type Orderbook = 'opensea' | 'looks-rare' | 'reservoir'
+
+type ListingQuery = Parameters<typeof listToken>['0']['query']
 
 async function list(
-  listingPrice: string,
-  maker: string | undefined,
-  token: string,
+  query: ListingQuery,
   progressCallback: (message: string) => void,
   signer: ReturnType<typeof useSigner>['data']
 ) {
@@ -17,19 +30,7 @@ async function list(
     throw new ReferenceError('Missing a signer')
   }
 
-  if (!maker) {
-    throw new ReferenceError('Missing a maker')
-  }
-
   try {
-    // Here we construct the parameters for the buy API
-    // The taker refers to the wallet address making the transaction
-    const query: Parameters<typeof listToken>['0']['query'] = {
-      maker,
-      weiPrice: utils.parseEther(listingPrice).toString(),
-      token,
-    }
-
     // Finally we supply these parameters to the buyToken
     // There are a couple of key parameters which we'll dive into
     await listToken({
@@ -72,11 +73,19 @@ export default function List() {
   const { connectors, isConnected } = useConnect()
   const { activeChain } = useNetwork()
   const [progressText, setProgressText] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [errorText, setErrorText] = useState('')
   const [userTokens, setUserTokens] = useState<Token[]>([])
 
-  const connector = connectors[0]
+  // INPUTS
+  const [expiration, setExpiration] = useState('oneWeek')
+  const [orderKind, setOrderKind] = useState<OrderKind>('seaport')
+  const [orderbook, setOrderbook] = useState<Orderbook>('reservoir')
+  const [listingPrice, setListingPrice] = useState('0.01')
+  const [fee_, setFee_] = useState('')
+  const [feeRecipient, setFeeRecipient] = useState<string>('')
 
-  const listingPrice = '0.01'
+  const connector = connectors[0]
 
   return (
     <>
@@ -84,8 +93,14 @@ export default function List() {
 
       <button
         onClick={async () => {
+          setErrorText('')
           if (account?.address) {
+            setLoading(true)
             const tokens = await getTokens(account?.address)
+            setLoading(false)
+            if (tokens.length === 0) {
+              setErrorText(`You don't have any tokens available for listing.`)
+            }
             setUserTokens(tokens)
             return
           }
@@ -93,27 +108,93 @@ export default function List() {
           console.error('Wallet is not connected.')
         }}
       >
-        Load your tokens
+        Load one of your tokens
       </button>
 
       <table className="sweep-list">
         <thead>
           <tr>
-            <th>Token Id</th>
+            <th>Token</th>
             <th>List</th>
           </tr>
         </thead>
         <tbody>
-          {userTokens.map(({ token }, i) => (
+          {userTokens.map(({ token: token_ }, i) => (
             <tr key={i}>
-              <td>{token?.tokenId}</td>
+              <td>{`${token_?.contract}:${token_?.tokenId}`}</td>
               <td>
+                <ExpirationSelector
+                  presets={expirationPresets}
+                  setExpiration={setExpiration}
+                  expiration={expiration}
+                />
+                <div style={{ marginBottom: 10 }} />
+                <OrderKindSelector setOrderKind={setOrderKind} />
+
+                <div style={{ marginBottom: 10 }} />
+                <label style={{ marginRight: 10 }} htmlFor="listing-price">
+                  Listing Price
+                </label>
+                <input
+                  id="listing-price"
+                  className="collection-input"
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  value={listingPrice}
+                  placeholder="Listing Price"
+                  onChange={(e) => setListingPrice(e.target.value)}
+                />
+                <span>ETH</span>
+
+                <div style={{ marginBottom: 10 }} />
+                <label style={{ marginRight: 10 }} htmlFor="fee">
+                  Fee
+                </label>
+                <input
+                  id="fee"
+                  className="collection-input"
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  value={fee_}
+                  placeholder="Fee"
+                  onChange={(e) => setFee_(e.target.value)}
+                />
+                <span>%</span>
+
+                <div style={{ marginBottom: 10 }} />
+                <label style={{ marginRight: 10 }} htmlFor="fee-recipient">
+                  Fee Recipient
+                </label>
+                <input
+                  id="fee-recipient"
+                  className="collection-input"
+                  type="text"
+                  value={feeRecipient}
+                  placeholder="Fee Recipient"
+                  onChange={(e) => setFeeRecipient(e.target.value)}
+                />
+
+                <div style={{ marginBottom: 10 }} />
+                <OrderbookSelector setOrderbook={setOrderbook} />
+
+                <div style={{ marginBottom: 10 }} />
                 <button
+                  disabled={!isConnected || loading}
                   onClick={async () => {
+                    setLoading(true)
                     if (activeChain?.id !== 4) {
                       alert(
                         'You are connected to the wrong network. Please, switch to the Rinkeby Test Network.'
                       )
+
+                      setLoading(false)
+                      return
+                    }
+
+                    if (!account?.address) {
+                      setLoading(false)
                       return
                     }
 
@@ -122,18 +203,33 @@ export default function List() {
                     }
 
                     setProgressText('')
-                    const token_ = `${token?.contract}:${token?.tokenId}`
 
-                    list(
-                      listingPrice,
-                      account?.address,
-                      token_,
-                      setProgressText,
-                      signer
-                    )
+                    const maker = account?.address
+                    const weiPrice = utils.parseEther(listingPrice).toString()
+                    const token = `${token_?.contract}:${token_?.tokenId}`
+                    const expirationTime = expirationPresets
+                      .find(({ preset }) => preset === expiration)
+                      ?.value()
+                    const fee = `${+fee_ * 100}`
+
+                    const query: ListingQuery = {
+                      maker,
+                      weiPrice,
+                      token,
+                      expirationTime,
+                      orderKind,
+                      orderbook,
+                    }
+
+                    if (fee_ !== '') query.fee = fee
+                    if (feeRecipient) query.feeRecipient = feeRecipient
+
+                    await list(query, setProgressText, signer)
+
+                    setLoading(false)
                   }}
                 >
-                  List
+                  List Token
                 </button>
               </td>
             </tr>
@@ -141,11 +237,47 @@ export default function List() {
         </tbody>
       </table>
 
-      {progressText.length > 0 && (
+      {loading && (
         <div className="progress-text">
-          <b>Progress:</b> {progressText}
+          <p>Loading...</p>
+        </div>
+      )}
+      {progressText !== '' && (
+        <div className="progress-text">
+          <p>Progress:</p> {progressText}
+        </div>
+      )}
+      {errorText !== '' && (
+        <div className="progress-text">
+          <p>{errorText}</p>
         </div>
       )}
     </>
   )
 }
+
+const expirationPresets = [
+  {
+    preset: 'oneHour',
+    value: () =>
+      DateTime.now().plus({ hours: 1 }).toMillis().toString().slice(0, -3),
+    display: '1 Hour',
+  },
+  {
+    preset: 'oneWeek',
+    value: () =>
+      DateTime.now().plus({ weeks: 1 }).toMillis().toString().slice(0, -3),
+    display: '1 Week',
+  },
+  {
+    preset: 'oneMonth',
+    value: () =>
+      DateTime.now().plus({ months: 1 }).toMillis().toString().slice(0, -3),
+    display: '1 Month',
+  },
+  {
+    preset: 'none',
+    value: () => '0',
+    display: 'None',
+  },
+]
