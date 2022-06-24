@@ -1,0 +1,53 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  margin-bottom: 40px;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.collection-input {
+  margin-right: 10px;
+  width: 300px;
+}
+
+.sweep-list {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.progress-text {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.empty-message {
+  margin-bottom: 40px;
+  font-size: 14px;
+}
+
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  margin: 20px;
+  width: calc(100% - 40px);
+
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
