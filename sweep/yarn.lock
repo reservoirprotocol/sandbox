@@ -1932,8 +1932,10 @@
     schema-utils "^3.0.0"
     source-map "^0.7.3"
 
-"@reservoir0x/client-sdk@file:../../client-sdk":
-  version "0.0.36"
+"@reservoir0x/client-sdk@0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@reservoir0x/client-sdk/-/client-sdk-0.1.0.tgz#1e75b81f2fad64022a70bed60030475e36687c89"
+  integrity sha512-WENf8WSwIxkurFjL551skY2h56HBRg+RZzIqvAdJIv6x0IgMcz98PTnalTO79+fo/B5Yl1H71lPxmokP6TJSDg==
   dependencies:
     ethers "^5.6.1"
 
