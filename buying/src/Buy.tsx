@@ -23,13 +23,8 @@ async function buy(
     // There are a couple of key parameters which we'll dive into
     await ReservoirSDK.client()
       .actions.buyToken({
-        // The expectedPrice is used to protect against price mismatch issues when prices are rapidly changing
-        // The expectedPrice can be omitted but the best practice is to supply this
         signer,
         tokens,
-        // The setState callback function is used to update the caller of the buyToken method
-        // It passes in a set of steps that the SDK is following to process the transaction
-        // It's useful for determining what step we're currently on and displaying a message to the user
         onProgress: (steps: Execute['steps']) => {
           if (!steps) {
             return
