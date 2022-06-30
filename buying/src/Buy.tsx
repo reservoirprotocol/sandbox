@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useConnect, useSigner, useAccount, useNetwork } from 'wagmi'
-import { buyToken, Execute } from '@reservoir0x/client-sdk'
+import {
+  Execute,
+  ReservoirSDK,
+  ReservoirSDKActions,
+} from '@reservoir0x/client-sdk'
 import { WalletConnector } from './utils/walletConnector'
 import getTokens, { Token } from './getTokens'
 
-type BuyingQuery = Parameters<typeof buyToken>['0']['query']
-
 async function buy(
-  query: BuyingQuery,
+  tokens: Parameters<ReservoirSDKActions['buyToken']>['0']['tokens'],
   progressCallback: (message: string) => void,
   signer: ReturnType<typeof useSigner>['data']
 ) {
@@ -19,32 +21,32 @@ async function buy(
   try {
     // Finally we supply these parameters to the buyToken
     // There are a couple of key parameters which we'll dive into
-    await buyToken({
-      // The expectedPrice is used to protect against price mismatch issues when prices are rapidly changing
-      // The expectedPrice can be omitted but the best practice is to supply this
-      query,
-      signer,
-      apiBase: 'https://api-rinkeby.reservoir.tools',
-      // The setState callback function is used to update the caller of the buyToken method
-      // It passes in a set of steps that the SDK is following to process the transaction
-      // It's useful for determining what step we're currently on and displaying a message to the user
-      setState: (steps: Execute['steps']) => {
-        if (!steps) {
-          return
-        }
+    await ReservoirSDK.client()
+      .actions.buyToken({
+        // The expectedPrice is used to protect against price mismatch issues when prices are rapidly changing
+        // The expectedPrice can be omitted but the best practice is to supply this
+        signer,
+        tokens,
+        // The setState callback function is used to update the caller of the buyToken method
+        // It passes in a set of steps that the SDK is following to process the transaction
+        // It's useful for determining what step we're currently on and displaying a message to the user
+        onProgress: (steps: Execute['steps']) => {
+          if (!steps) {
+            return
+          }
 
-        const currentStep = steps.find((step) => step.status === 'incomplete')
-        if (currentStep) {
-          progressCallback(currentStep.message || '')
-        }
-      },
-      handleSuccess: () => {
+          const currentStep = steps.find((step) => step.status === 'incomplete')
+          if (currentStep) {
+            progressCallback(currentStep.message || '')
+          }
+        },
+      })
+      .then(() => {
         progressCallback('Success')
-      },
-      handleError: (error) => {
+      })
+      .catch((error: Error) => {
         progressCallback(`Error: ${error.message}`)
-      },
-    })
+      })
 
     return true
   } catch (err) {
@@ -170,19 +172,15 @@ export default function List() {
                   }
 
                   setProgressText('')
-                  const taker = account?.address
+                  const tokens: Parameters<
+                    ReservoirSDKActions['buyToken']
+                  >['0']['tokens'] = []
 
-                  const query: BuyingQuery = {
-                    taker,
-                  }
-
-                  selectedTokenIds?.forEach(
-                    (tokenId, index) =>
-                      //@ts-ignore
-                      (query[`tokens[${index}]`] = `${contract}:${tokenId}`)
+                  selectedTokenIds?.forEach((tokenId) =>
+                    tokens.push({ contract, tokenId })
                   )
 
-                  await buy(query, setProgressText, signer)
+                  await buy(tokens, setProgressText, signer)
 
                   setLoading(false)
                 }}

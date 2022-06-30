@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useConnect, useSigner, useAccount, useNetwork } from 'wagmi'
-import { listToken, Execute } from '@reservoir0x/client-sdk'
 import { WalletConnector } from './utils/walletConnector'
 import { utils } from 'ethers'
 import getTokens, { Token } from './getTokens'
@@ -8,6 +7,11 @@ import { DateTime } from 'luxon'
 import ExpirationSelector from './ExpirationSelector'
 import OrderKindSelector from './OrderKindSelector'
 import OrderbookSelector from './OrderbookSelector'
+import {
+  Execute,
+  ReservoirSDK,
+  ReservoirSDKActions,
+} from '@reservoir0x/client-sdk'
 
 export type OrderKind =
   | '721ex'
@@ -18,12 +22,15 @@ export type OrderKind =
 
 export type Orderbook = 'opensea' | 'looks-rare' | 'reservoir'
 
-type ListingQuery = Parameters<typeof listToken>['0']['query']
-
 async function list(
-  query: ListingQuery,
+  expirationTime: Parameters<
+    ReservoirSDKActions['listToken']
+  >['0']['expirationTime'],
+  token: Parameters<ReservoirSDKActions['listToken']>['0']['token'],
+  weiPrice: Parameters<ReservoirSDKActions['listToken']>['0']['weiPrice'],
   progressCallback: (message: string) => void,
-  signer: ReturnType<typeof useSigner>['data']
+  signer: ReturnType<typeof useSigner>['data'],
+  options?: Parameters<ReservoirSDKActions['listToken']>['0']['options']
 ) {
   // Required parameters to complete the transaction
   if (!signer) {
@@ -33,32 +40,33 @@ async function list(
   try {
     // Finally we supply these parameters to the buyToken
     // There are a couple of key parameters which we'll dive into
-    await listToken({
-      // The expectedPrice is used to protect against price mismatch issues when prices are rapidly changing
-      // The expectedPrice can be omitted but the best practice is to supply this
-      query,
-      signer,
-      apiBase: 'https://api-rinkeby.reservoir.tools',
-      // The setState callback function is used to update the caller of the buyToken method
-      // It passes in a set of steps that the SDK is following to process the transaction
-      // It's useful for determining what step we're currently on and displaying a message to the user
-      setState: (steps: Execute['steps']) => {
-        if (!steps) {
-          return
-        }
+    await ReservoirSDK.client()
+      .actions.listToken({
+        signer,
+        expirationTime,
+        token,
+        weiPrice,
+        options,
+        // The setState callback function is used to update the caller of the buyToken method
+        // It passes in a set of steps that the SDK is following to process the transaction
+        // It's useful for determining what step we're currently on and displaying a message to the user
+        onProgress: (steps: Execute['steps']) => {
+          if (!steps) {
+            return
+          }
 
-        const currentStep = steps.find((step) => step.status === 'incomplete')
-        if (currentStep) {
-          progressCallback(currentStep.message || '')
-        }
-      },
-      handleSuccess: () => {
+          const currentStep = steps.find((step) => step.status === 'incomplete')
+          if (currentStep) {
+            progressCallback(currentStep.message || '')
+          }
+        },
+      })
+      .then(() => {
         progressCallback('Success')
-      },
-      handleError: (error) => {
+      })
+      .catch((error: Error) => {
         progressCallback(`Error: ${error.message}`)
-      },
-    })
+      })
 
     return true
   } catch (err) {
@@ -215,7 +223,6 @@ export default function List() {
 
                           setProgressText('')
 
-                          const maker = account?.address
                           const weiPrice = utils
                             .parseEther(listingPrice)
                             .toString()
@@ -225,19 +232,23 @@ export default function List() {
                             ?.value()
                           const fee = `${+fee_ * 100}`
 
-                          const query: ListingQuery = {
-                            maker,
-                            weiPrice,
-                            token,
+                          const options: Parameters<
+                            ReservoirSDKActions['listToken']
+                          >['0']['options'] = {}
+
+                          options.orderbook = orderbook
+                          options.orderKind = orderKind
+                          if (fee_ !== '') options.fee = fee
+                          if (feeRecipient) options.feeRecipient = feeRecipient
+
+                          await list(
                             expirationTime,
-                            orderKind,
-                            orderbook,
-                          }
-
-                          if (fee_ !== '') query.fee = fee
-                          if (feeRecipient) query.feeRecipient = feeRecipient
-
-                          await list(query, setProgressText, signer)
+                            token,
+                            weiPrice,
+                            setProgressText,
+                            signer,
+                            options
+                          )
 
                           setLoading(false)
                         }}
