@@ -3,12 +3,15 @@ import { useEffect, useState } from "react";
 import getCollectionFloor, { Token } from "./getListings";
 import { useConnect, useSigner, useNetwork } from "wagmi";
 import { WalletConnector } from "./utils/walletConnector";
-import { Execute } from "@reservoir0x/client-sdk/dist/types";
-import { ReservoirSDK, ReservoirSDKActions } from "@reservoir0x/client-sdk";
+import {
+  Execute,
+  getClient,
+  ReservoirClientActions,
+} from "@reservoir0x/reservoir-kit-client";
 
 async function sweepTokens(
   sweepTotal: number,
-  tokens: Parameters<ReservoirSDKActions["buyToken"]>["0"]["tokens"],
+  tokens: Parameters<ReservoirClientActions["buyToken"]>["0"]["tokens"],
   progressCallback: (message: string) => void,
   signer?: ReturnType<typeof useSigner>["data"]
 ) {
@@ -18,10 +21,10 @@ async function sweepTokens(
   }
 
   try {
-    // Finally we supply these parameters to the buyToken
+    // Then we supply these parameters to the buyToken
     // There are a couple of key parameters which we'll dive into
-    ReservoirSDK.client()
-      .actions.buyToken({
+    getClient()
+      ?.actions.buyToken({
         tokens: tokens,
         signer: signer,
         // The expectedPrice is used to protect against price mismatch issues when prices are rapidly changing

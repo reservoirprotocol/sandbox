@@ -1,6 +1,6 @@
 //https://api.reservoir.tools/tokens/bootstrap/v1
 
-import { paths } from "@reservoir0x/client-sdk";
+import { paths } from "@reservoir0x/reservoir-kit-client";
 
 export type Token = NonNullable<
   paths["/tokens/v4"]["get"]["responses"]["200"]["schema"]["tokens"]
