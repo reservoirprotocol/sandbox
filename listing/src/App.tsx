@@ -1,13 +1,18 @@
 import './App.css'
-import { createClient, configureChains, WagmiConfig, chain } from 'wagmi'
+import {
+  createClient as createWagmiClient,
+  configureChains,
+  WagmiConfig,
+  chain,
+} from 'wagmi'
 import { publicProvider } from 'wagmi/providers/public'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import List from './List'
-import { ReservoirSDK } from '@reservoir0x/client-sdk'
+import { createClient } from '@reservoir0x/reservoir-kit-client'
 
 const { chains } = configureChains([chain.rinkeby], [publicProvider()])
 
-const client = createClient({
+const client = createWagmiClient({
   autoConnect: true,
   connectors: [
     new InjectedConnector({
@@ -20,7 +25,7 @@ const client = createClient({
   ],
 })
 
-ReservoirSDK.init({
+createClient({
   apiBase: 'https://api-rinkeby.reservoir.tools',
 })
 

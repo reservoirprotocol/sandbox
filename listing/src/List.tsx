@@ -9,9 +9,9 @@ import OrderKindSelector from './OrderKindSelector'
 import OrderbookSelector from './OrderbookSelector'
 import {
   Execute,
-  ReservoirSDK,
-  ReservoirSDKActions,
-} from '@reservoir0x/client-sdk'
+  ReservoirClientActions,
+  getClient,
+} from '@reservoir0x/reservoir-kit-client'
 
 export type OrderKind =
   | '721ex'
@@ -24,13 +24,13 @@ export type Orderbook = 'opensea' | 'looks-rare' | 'reservoir'
 
 async function list(
   expirationTime: Parameters<
-    ReservoirSDKActions['listToken']
+    ReservoirClientActions['listToken']
   >['0']['expirationTime'],
-  token: Parameters<ReservoirSDKActions['listToken']>['0']['token'],
-  weiPrice: Parameters<ReservoirSDKActions['listToken']>['0']['weiPrice'],
+  token: Parameters<ReservoirClientActions['listToken']>['0']['token'],
+  weiPrice: Parameters<ReservoirClientActions['listToken']>['0']['weiPrice'],
   progressCallback: (message: string) => void,
   signer: ReturnType<typeof useSigner>['data'],
-  options?: Parameters<ReservoirSDKActions['listToken']>['0']['options']
+  options?: Parameters<ReservoirClientActions['listToken']>['0']['options']
 ) {
   // Required parameters to complete the transaction
   if (!signer) {
@@ -38,8 +38,8 @@ async function list(
   }
 
   try {
-    await ReservoirSDK.client()
-      .actions.listToken({
+    await getClient()
+      ?.actions.listToken({
         signer,
         expirationTime,
         token,
@@ -228,7 +228,7 @@ export default function List() {
                           const fee = `${+fee_ * 100}`
 
                           const options: Parameters<
-                            ReservoirSDKActions['listToken']
+                            ReservoirClientActions['listToken']
                           >['0']['options'] = {}
 
                           options.orderbook = orderbook
