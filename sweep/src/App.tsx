@@ -11,7 +11,7 @@ import { InjectedConnector } from "wagmi/connectors/injected";
 import Sweep from "./sweep";
 import { createClient } from "@reservoir0x/reservoir-kit-client";
 
-const { chains } = configureChains([chain.rinkeby], [publicProvider()]);
+const { chains } = configureChains([chain.goerli], [publicProvider()]);
 
 const client = createWagmiClient({
   autoConnect: true,
@@ -27,7 +27,7 @@ const client = createWagmiClient({
 });
 
 createClient({
-  apiBase: "https://api-rinkeby.reservoir.tools",
+  apiBase: "https://api-goerli.reservoir.tools",
 });
 
 export default function App() {

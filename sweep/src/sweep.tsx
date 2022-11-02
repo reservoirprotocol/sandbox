@@ -37,12 +37,18 @@ async function sweepTokens(
           if (!steps) {
             return;
           }
-
-          const currentStep = steps.find(
-            (step) => step.status === "incomplete"
+          const currentStep = steps.find((step) =>
+            step.items?.find((item) => item.status === "incomplete")
           );
           if (currentStep) {
-            progressCallback(currentStep.message || "");
+            const progress = currentStep.items?.findIndex(
+              (item) => item.status === "incomplete"
+            );
+            progressCallback(
+              currentStep.action
+                ? `${currentStep.action} (${progress}/${currentStep.items?.length})`
+                : ""
+            );
           }
         },
       })
@@ -65,7 +71,7 @@ export default function Sweep() {
   const { connectors, isConnected } = useConnect();
   const { activeChain } = useNetwork();
   const [tokens, setTokens] = useState<Token[]>([]);
-  const [selectedTokens, setselectedTokens] = useState<Token[]>([]);
+  const [selectedTokens, setSelectedTokens] = useState<Token[]>([]);
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [sweepTotal, setSweepTotal] = useState(0);
   const [collectionId, setCollectionId] = useState(
@@ -77,20 +83,28 @@ export default function Sweep() {
   const [progressText, setProgressText] = useState("");
 
   const handleOnChange = (token: Token) => {
-    const selectedTokenIds = selectedTokens.map((token) => token.tokenId);
-    const selected = selectedTokenIds.includes(token.tokenId);
+    const selectedTokenIds = selectedTokens.map(
+      (token) => token.token?.tokenId
+    );
+    const selected = selectedTokenIds.includes(token.token?.tokenId);
     let updatedselectedTokens = selectedTokens.slice();
 
     if (selected) {
       updatedselectedTokens = selectedTokens.filter(
-        (selectedToken) => selectedToken.tokenId !== token.tokenId
+        (selectedToken) => selectedToken.token?.tokenId !== token.token?.tokenId
       );
     } else {
       updatedselectedTokens.push(token);
     }
 
-    setselectedTokens(updatedselectedTokens);
-    setSelectedTokenIds(updatedselectedTokens.map((token) => token.tokenId));
+    setSelectedTokens(updatedselectedTokens);
+    const ids: string[] = [];
+    updatedselectedTokens.forEach((token) => {
+      if (token.token?.tokenId) {
+        ids.push(token.token.tokenId);
+      }
+    });
+    setSelectedTokenIds(ids);
   };
 
   useEffect(() => {
@@ -101,8 +115,12 @@ export default function Sweep() {
 
   useEffect(() => {
     const newTotal = tokens.reduce((total, token) => {
-      if (selectedTokenIds.includes(token.tokenId) && token.floorAskPrice) {
-        total += token.floorAskPrice;
+      if (
+        token.token &&
+        selectedTokenIds.includes(token.token?.tokenId) &&
+        token.market?.floorAsk?.price?.amount?.native
+      ) {
+        total += token.market.floorAsk.price.amount.native;
       }
       return total;
     }, 0);
@@ -125,29 +143,35 @@ export default function Sweep() {
       <button
         onClick={() => {
           setCollectionId(inputValue);
+          setSelectedTokens([]);
+          setSelectedTokenIds([]);
         }}
       >
-        Get Floor
+        Get Listings
       </button>
 
       <table className="sweep-list">
         <thead>
           <tr>
             <th>Token Id</th>
-            <th>Floor Price</th>
+            <th>Price</th>
             <th>Sweep</th>
           </tr>
         </thead>
         <tbody>
           {tokens.map((token, i) => (
             <tr key={i}>
-              <td>{token.tokenId}</td>
-              <td>{token.floorAskPrice}</td>
+              <td>{token.token?.tokenId}</td>
+              <td>{token.market?.floorAsk?.price?.amount?.native}</td>
               <td>
                 <input
                   type="checkbox"
-                  value={token.tokenId}
-                  checked={selectedTokenIds.includes(token.tokenId)}
+                  value={token.token?.tokenId}
+                  checked={
+                    token.token?.tokenId
+                      ? selectedTokenIds.includes(token.token.tokenId)
+                      : false
+                  }
                   onChange={() => handleOnChange(token)}
                 />
               </td>
@@ -158,16 +182,16 @@ export default function Sweep() {
 
       {!tokens.length && (
         <div className="empty-message">
-          Enter a collection address to get available floor tokens
+          Enter a collection address to get available tokens
         </div>
       )}
 
       <button
         disabled={selectedTokens.length === 0}
         onClick={async () => {
-          if (activeChain?.id !== 4) {
+          if (activeChain?.id !== 5) {
             alert(
-              "You are connected to the wrong network. Please use the Rinkeby test network."
+              "You are connected to the wrong network. Please use the Goerli test network."
             );
             return;
           }
@@ -176,7 +200,13 @@ export default function Sweep() {
             await connector.connect();
           }
           setProgressText("");
-          sweepTokens(sweepTotal, selectedTokens, setProgressText, signer);
+          const tokens = selectedTokens.map((token) => {
+            return {
+              tokenId: token.token?.tokenId as string,
+              contract: token.token?.contract as string,
+            };
+          });
+          sweepTokens(sweepTotal, tokens, setProgressText, signer);
         }}
       >
         Sweep Tokens
