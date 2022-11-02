@@ -13,24 +13,16 @@ import {
   getClient,
 } from '@reservoir0x/reservoir-kit-client'
 
-export type OrderKind =
-  | '721ex'
-  | 'looks-rare'
-  | 'wyvern-v2.3'
-  | 'zeroex-v4'
-  | 'seaport'
+export type OrderKind = 'looks-rare' | 'x2y2' | 'zeroex-v4' | 'seaport'
 
 export type Orderbook = 'opensea' | 'looks-rare' | 'reservoir'
 
 async function list(
-  expirationTime: Parameters<
+  listing: Parameters<
     ReservoirClientActions['listToken']
-  >['0']['expirationTime'],
-  token: Parameters<ReservoirClientActions['listToken']>['0']['token'],
-  weiPrice: Parameters<ReservoirClientActions['listToken']>['0']['weiPrice'],
+  >['0']['listings']['0'],
   progressCallback: (message: string) => void,
-  signer: ReturnType<typeof useSigner>['data'],
-  options?: Parameters<ReservoirClientActions['listToken']>['0']['options']
+  signer: ReturnType<typeof useSigner>['data']
 ) {
   // Required parameters to complete the transaction
   if (!signer) {
@@ -40,19 +32,25 @@ async function list(
   try {
     await getClient()
       ?.actions.listToken({
+        listings: [listing],
         signer,
-        expirationTime,
-        token,
-        weiPrice,
-        options,
         onProgress: (steps: Execute['steps']) => {
           if (!steps) {
             return
           }
 
-          const currentStep = steps.find((step) => step.status === 'incomplete')
+          const currentStep = steps.find((step) =>
+            step.items?.find((item) => item.status === 'incomplete')
+          )
           if (currentStep) {
-            progressCallback(currentStep.message || '')
+            const progress = currentStep.items?.findIndex(
+              (item) => item.status === 'incomplete'
+            )
+            progressCallback(
+              currentStep.action
+                ? `${currentStep.action} (${progress}/${currentStep.items?.length})`
+                : ''
+            )
           }
         },
       })
@@ -198,9 +196,9 @@ export default function List() {
                         disabled={!isConnected || loading}
                         onClick={async () => {
                           setLoading(true)
-                          if (activeChain?.id !== 4) {
+                          if (activeChain?.id !== 5) {
                             alert(
-                              'You are connected to the wrong network. Please, switch to the Rinkeby Test Network.'
+                              'You are connected to the wrong network. Please, switch to the Goerli Test Network.'
                             )
 
                             setLoading(false)
@@ -227,23 +225,21 @@ export default function List() {
                             ?.value()
                           const fee = `${+fee_ * 100}`
 
-                          const options: Parameters<
+                          const listing: Parameters<
                             ReservoirClientActions['listToken']
-                          >['0']['options'] = {}
-
-                          options.orderbook = orderbook
-                          options.orderKind = orderKind
-                          if (fee_ !== '') options.fee = fee
-                          if (feeRecipient) options.feeRecipient = feeRecipient
-
-                          await list(
-                            expirationTime,
+                          >['0']['listings']['0'] = {
                             token,
                             weiPrice,
-                            setProgressText,
-                            signer,
-                            options
-                          )
+                            orderKind: orderKind,
+                            orderbook: orderbook,
+                            expirationTime: expirationTime,
+                          }
+
+                          if (fee_ !== '' && feeRecipient) {
+                            listing.fees = [`${feeRecipient}:${fee}`]
+                          }
+
+                          await list(listing, setProgressText, signer)
 
                           setLoading(false)
                         }}

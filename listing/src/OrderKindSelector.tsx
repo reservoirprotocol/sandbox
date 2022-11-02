@@ -17,13 +17,11 @@ const OrderKindSelector: FC<Props> = ({ setOrderKind }) => {
         defaultValue="seaport"
         onChange={(e) => setOrderKind(e.target.value as OrderKind)}
       >
-        {['721ex', 'looks-rare', 'wyvern-v2.3', 'zeroex-v4', 'seaport'].map(
-          (orderKind) => (
-            <option key={orderKind} value={orderKind}>
-              {orderKind}
-            </option>
-          )
-        )}
+        {['x2y2', 'looks-rare', 'zeroex-v4', 'seaport'].map((orderKind) => (
+          <option key={orderKind} value={orderKind}>
+            {orderKind}
+          </option>
+        ))}
       </select>
     </>
   )

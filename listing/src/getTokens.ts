@@ -7,7 +7,7 @@ export type Token = NonNullable<
 
 export default async function getTokens(user: string): Promise<Token[]> {
   const response = await fetch(
-    `https://api-rinkeby.reservoir.tools/users/${user}/tokens/v2?limit=1`
+    `https://api-goerli.reservoir.tools/users/${user}/tokens/v2?limit=1`
   )
 
   if (response.status === 200) {
