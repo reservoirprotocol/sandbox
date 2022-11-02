@@ -29,11 +29,20 @@ async function buy(
             return;
           }
 
-          const currentStep = steps.find(
-            (step) => step.status === "incomplete"
+          const currentStep = steps.find((step) =>
+            step.items?.find((item) => item.status === "incomplete")
           );
           if (currentStep) {
-            progressCallback(currentStep.message || "");
+            const progress = currentStep.items?.findIndex(
+              (item) => item.status === "incomplete"
+            );
+            progressCallback(
+              currentStep.action
+                ? `${currentStep.action} (${(progress || 0) + 1}/${
+                    currentStep.items?.length
+                  })`
+                : ""
+            );
           }
         },
       })
@@ -106,8 +115,8 @@ export default function List() {
               setLoading(true);
               const tokens = await getTokens(contract);
               setLoading(false);
-              const filteredTokens = tokens.filter(({ floorAskPrice }) =>
-                Boolean(floorAskPrice)
+              const filteredTokens = tokens.filter((token) =>
+                Boolean(token.market?.floorAsk?.price?.amount?.native)
               );
               if (filteredTokens.length === 0) {
                 setErrorText(`There are no tokens available to purchase.`);
@@ -129,16 +138,24 @@ export default function List() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tokens.map(({ contract, tokenId, floorAskPrice }, i) => (
+                  {tokens.map((token, i) => (
                     <tr key={i}>
-                      <td>{`${contract}:${tokenId}`}</td>
-                      <td>{floorAskPrice}</td>
+                      <td>{`${token.token?.contract}:${token.token?.tokenId}`}</td>
+                      <td>{token.market?.floorAsk?.price?.amount?.native}</td>
                       <td>
                         <input
                           type="checkbox"
-                          value={tokenId}
-                          checked={selectedTokenIds.includes(tokenId)}
-                          onChange={() => handleOnChange(tokenId)}
+                          value={token.token?.tokenId}
+                          checked={
+                            token.token?.tokenId
+                              ? selectedTokenIds.includes(token.token.tokenId)
+                              : false
+                          }
+                          onChange={() => {
+                            if (token.token?.tokenId) {
+                              handleOnChange(token.token.tokenId);
+                            }
+                          }}
                         />
                       </td>
                     </tr>
@@ -149,9 +166,9 @@ export default function List() {
                 disabled={!isConnected || loading}
                 onClick={async () => {
                   setLoading(true);
-                  if (activeChain?.id !== 4) {
+                  if (activeChain?.id !== 5) {
                     alert(
-                      "You are connected to the wrong network. Please, switch to the Rinkeby Test Network."
+                      "You are connected to the wrong network. Please, switch to the Goerli Test Network."
                     );
 
                     setLoading(false);

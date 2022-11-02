@@ -48,7 +48,9 @@ async function list(
             )
             progressCallback(
               currentStep.action
-                ? `${currentStep.action} (${progress}/${currentStep.items?.length})`
+                ? `${currentStep.action} (${(progress || 0) + 1}/${
+                    currentStep.items?.length
+                  })`
                 : ''
             )
           }
