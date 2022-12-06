@@ -7,6 +7,7 @@ import {
 } from "@reservoir0x/reservoir-kit-client";
 import { WalletConnector } from "./utils/walletConnector";
 import getTokens, { Token } from "./getTokens";
+import { constants } from "ethers";
 
 async function buy(
   tokens: Parameters<ReservoirClientActions["buyToken"]>["0"]["tokens"],
@@ -44,6 +45,9 @@ async function buy(
                 : ""
             );
           }
+        },
+        options: {
+          currency: constants.AddressZero,
         },
       })
       .then(() => {
@@ -122,6 +126,7 @@ export default function List() {
                 setErrorText(`There are no tokens available to purchase.`);
               }
               setTokens(filteredTokens);
+              setSelectedTokenIds([]);
             }}
           >
             Load tokens to buy

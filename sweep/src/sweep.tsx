@@ -8,12 +8,14 @@ import {
   getClient,
   ReservoirClientActions,
 } from "@reservoir0x/reservoir-kit-client";
+import { constants } from "ethers";
 
 async function sweepTokens(
-  sweepTotal: number,
+  sweepTotal: number | undefined,
   tokens: Parameters<ReservoirClientActions["buyToken"]>["0"]["tokens"],
   progressCallback: (message: string) => void,
-  signer?: ReturnType<typeof useSigner>["data"]
+  signer?: ReturnType<typeof useSigner>["data"],
+  sweepCurrency?: string
 ) {
   // Required parameters to complete the transaction
   if (!signer) {
@@ -23,6 +25,16 @@ async function sweepTokens(
   try {
     // Then we supply these parameters to the buyToken
     // There are a couple of key parameters which we'll dive into
+
+    // Pass any additional parameters to the underlying execute buy api, using the client actions type to extract the right types
+    const options: Parameters<
+      ReservoirClientActions["buyToken"]
+    >[0]["options"] = {};
+
+    if (sweepCurrency) {
+      options.currency = sweepCurrency;
+    }
+
     getClient()
       ?.actions.buyToken({
         tokens: tokens,
@@ -30,6 +42,8 @@ async function sweepTokens(
         // The expectedPrice is used to protect against price mismatch issues when prices are rapidly changing
         // The expectedPrice can be omitted but the best practice is to supply this
         expectedPrice: sweepTotal,
+        // Pass any additional parameters to the underlying execute buy api
+        options,
         // The onProgress callback function is used to update the caller of the buyToken method
         // It passes in a set of steps that the SDK is following to process the transaction
         // It's useful for determining what step we're currently on and displaying a message to the user
@@ -76,6 +90,9 @@ export default function Sweep() {
   const [selectedTokens, setSelectedTokens] = useState<Token[]>([]);
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [sweepTotal, setSweepTotal] = useState(0);
+  const [sweepCurrencyContract, setSweepCurrencyContract] = useState<
+    string | undefined
+  >();
   const [collectionId, setCollectionId] = useState(
     "0xf5de760f2e916647fd766b4ad9e85ff943ce3a2b"
   );
@@ -120,9 +137,9 @@ export default function Sweep() {
       if (
         token.token &&
         selectedTokenIds.includes(token.token?.tokenId) &&
-        token.market?.floorAsk?.price?.amount?.native
+        token.market?.floorAsk?.price?.amount?.decimal
       ) {
-        total += token.market.floorAsk.price.amount.native;
+        total += token.market.floorAsk.price.amount.decimal;
       }
       return total;
     }, 0);
@@ -131,6 +148,22 @@ export default function Sweep() {
   }, [tokens, selectedTokenIds]);
 
   const connector = connectors[0];
+  const selectedTokensCurrencies = selectedTokens.map(
+    (token) => token.market?.floorAsk?.price?.currency
+  );
+
+  if (
+    !selectedTokensCurrencies.find(
+      (currency) => currency?.contract === constants.AddressZero
+    )
+  ) {
+    selectedTokensCurrencies.push({
+      contract: constants.AddressZero,
+      symbol: "ETH",
+      decimals: 18,
+      name: "Ether",
+    });
+  }
 
   return (
     <>
@@ -147,6 +180,7 @@ export default function Sweep() {
           setCollectionId(inputValue);
           setSelectedTokens([]);
           setSelectedTokenIds([]);
+          setSweepCurrencyContract(undefined);
         }}
       >
         Get Listings
@@ -164,7 +198,10 @@ export default function Sweep() {
           {tokens.map((token, i) => (
             <tr key={i}>
               <td>{token.token?.tokenId}</td>
-              <td>{token.market?.floorAsk?.price?.amount?.native}</td>
+              <td>
+                {token.market?.floorAsk?.price?.amount?.decimal}{" "}
+                {token.market?.floorAsk?.price?.currency?.symbol}
+              </td>
               <td>
                 <input
                   type="checkbox"
@@ -188,6 +225,21 @@ export default function Sweep() {
         </div>
       )}
 
+      <select
+        style={{ marginRight: 20 }}
+        value={sweepCurrencyContract}
+        onChange={(e) => {
+          setSweepCurrencyContract(e.target.value);
+        }}
+      >
+        <option disabled selected>
+          Currency
+        </option>
+        {selectedTokensCurrencies.map((currency) => (
+          <option value={currency?.contract}>{currency?.symbol}</option>
+        ))}
+      </select>
+
       <button
         disabled={selectedTokens.length === 0}
         onClick={async () => {
@@ -202,13 +254,32 @@ export default function Sweep() {
             await connector.connect();
           }
           setProgressText("");
+          let expectedPrice: number | undefined = sweepTotal;
+          const firstTokenCurrency =
+            selectedTokens[0].market?.floorAsk?.price?.currency?.contract;
+          let mixedCurrencies = false;
+
           const tokens = selectedTokens.map((token) => {
+            if (!mixedCurrencies) {
+              mixedCurrencies =
+                token.market?.floorAsk?.price?.currency?.contract !==
+                firstTokenCurrency;
+            }
             return {
               tokenId: token.token?.tokenId as string,
               contract: token.token?.contract as string,
             };
           });
-          sweepTokens(sweepTotal, tokens, setProgressText, signer);
+          if (mixedCurrencies) {
+            expectedPrice = undefined;
+          }
+          sweepTokens(
+            expectedPrice,
+            tokens,
+            setProgressText,
+            signer,
+            sweepCurrencyContract
+          );
         }}
       >
         Sweep Tokens

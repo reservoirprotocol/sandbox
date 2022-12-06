@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@reservoir0x/reservoir-kit-client": "0.1.12",
+    "@reservoir0x/reservoir-kit-client": "0.2.3",
     "@types/jest": "^28.1.1",
     "@types/node": "^18.0.0",
     "@types/react": "^18.0.13",

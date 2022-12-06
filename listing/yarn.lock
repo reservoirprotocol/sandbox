@@ -1910,10 +1910,10 @@
     schema-utils "^3.0.0"
     source-map "^0.7.3"
 
-"@reservoir0x/reservoir-kit-client@0.1.12":
-  version "0.1.12"
-  resolved "https://registry.yarnpkg.com/@reservoir0x/reservoir-kit-client/-/reservoir-kit-client-0.1.12.tgz#d8902c629186152a6d904012423e6b74bbe718ce"
-  integrity sha512-fYXPUltyf2+eRcfmerp9mqePGVTfdom6l2MZjuSszeFEkw3Y3pLt9qyJL+XDeavYcREgAkUW282MvnhHrcTpfA==
+"@reservoir0x/reservoir-kit-client@0.2.3":
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/@reservoir0x/reservoir-kit-client/-/reservoir-kit-client-0.2.3.tgz#aba7947ed8d3af86171c0ad0dfa27f59a6909985"
+  integrity sha512-1OqRNhPklCodg8HPnKgWVULTl/B3mp7cgQvlBjQlz53R31qQAstxBKaVfLRb7tAZgBgI/ZdQ6uyARAL6PCQAvQ==
   dependencies:
     axios "^0.27.2"
 
