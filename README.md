@@ -1,4 +1,4 @@
-# Reservoir Client SDK Sandbox - [⛔️ DEPRECATED]
+# Reservoir Client SDK Sandbox - ⛔️ DEPRECATED
 
 
 
