@@ -1,4 +1,6 @@
-# Reservoir Client SDK Sandbox
+# Reservoir Client SDK Sandbox - [⛔️ DEPRECATED]
+
+
 
 This repository was created to supplement the Reservoir Protocol guides and give developers a quick way to test out the protocol's capabilities. For a complete overview head over to the Reservoir Protocol [docs](https://docs.reservoir.tools/).
 
